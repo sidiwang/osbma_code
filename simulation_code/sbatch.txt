@@ -1,0 +1,67 @@
+#!/bin/bash
+#SBATCH --job-name=OSPRED_w.random.wo.4000
+#SBATCH --time=2-20:30:00
+#SBATCH --mail-user=xxxxxx
+#SBATCH --mem=4GB 
+#SBATCH --cpus-per-task=1
+#SBATCH -o record/OSPRED-%a.out
+#SBATCH --array=0-899
+#SBATCH --mail-type=ALL
+
+module load gcc/10.3.0
+module load jags/4.3.0
+
+# Create an empty array
+C=()
+
+# Add 600 ones (1) to the array
+for ((i=0; i<300; i++)); do
+    C+=(1)
+done
+
+# Add 600 twos (2) to the array
+for ((i=0; i<300; i++)); do
+    C+=(2)
+done
+
+# Add 600 threes (3) to the array
+for ((i=0; i<300; i++)); do
+    C+=(3)
+done
+
+# Create an empty array
+D=()
+
+# Define the repetition counts
+repetitions=(100 100 100)
+
+# Define the values to repeat
+values=(1 2 3)
+
+# Loop through the repetition counts
+for count in "${repetitions[@]}"; do
+    # Loop through the values
+    for value in "${values[@]}"; do
+        # Add the value to the array the specified number of times
+        for ((i=0; i<count; i++)); do
+            D+=("$value")
+        done
+    done
+done
+
+
+
+# Create an empty array
+E=()
+
+# Generate the initial sequence from 1 to 200
+for ((i = 1; i <= 100; i++)); do
+    E+=("$i")
+done
+
+# Repeat the sequence 9 times
+for ((j = 0; j < 9; j++)); do
+    E+=( "${E[@]}" )
+done
+
+Rscript /home/sidiwang/simulation/simulation_3JM.R ${C[$SLURM_ARRAY_TASK_ID]} ${D[$SLURM_ARRAY_TASK_ID]} ${E[$SLURM_ARRAY_TASK_ID]}

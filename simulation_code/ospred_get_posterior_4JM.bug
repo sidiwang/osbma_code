@@ -1,0 +1,218 @@
+################ Target Lesion #########################################
+
+data
+{
+   for (i in 1:N)
+   {
+       Y_NLOS[i] <- 0
+   }
+}
+
+model{
+  
+  C <- 1e+4
+  
+  tau <- pow(sigma_Y, -2)
+  
+  tau_os.1 <- pow(sigma_os.1, -2)
+  
+  tau_b1 <- pow(sigma_b1, -2)
+  
+  tau_b2 <- pow(sigma_b2, -2)
+  
+  tau_b2.b1 <- 1 / (1 - pow(rho, 2)) * tau_b2
+  
+  for (i in 1:N) {
+    
+    
+    for(j in 1:T[i]) {
+      
+      
+      Y[i, j] ~ dnorm(mu_1[i, j], tau) 
+      
+      mu_1[i, j] <- inprod(X[i, 1:Npar_0], beta_0[1:Npar_0]) + t[i, j] * (beta_0[Npar_0 + 1] + b[i, 2]) + b[i, 1]
+      
+    }
+    
+    
+    for (j in (T[i] + 1):(evl_times + 1)){
+      
+      mu_1[i, j] <- 0
+      
+    }
+    
+    
+    mu[i] <- sum(mu_1[i,]) / T[i]
+    
+    
+    theta_os.1[i] <- exp(inprod(Z_1[i, 1:Npar], beta_1[1:Npar]) + lambda * mu[i] + b_os.1[i])
+     
+    Y.os.t_rep[i] ~ dweib(alpha_os.1, theta_os.1[i]) T(t.cen.lim[i, 1], longest_survival)
+    
+    
+    b[i,1] ~ dnorm(0, tau_b1)
+    
+    b[i,2] ~ dnorm(mu_b2.b1[i], tau_b2.b1) 
+    
+    mu_b2.b1[i] <- sigma_b2 * b[i,1] * rho / sigma_b1
+    
+    b_os.1[i] ~ dnorm(0, tau_os.1)
+    
+  }
+  
+  for (i in TL_ob_n){
+    
+    t.os[i] ~ dweib(alpha_os.1, theta_os.1[i]) T(, longest_survival)
+  
+  }
+  
+  for (i in TL_c_n){
+    
+    t.os[i] ~ dweib(alpha_os.1, theta_os.1[i]) T(t.cen.lim[i, 1], longest_survival)
+  }
+  
+  
+  ######################### Priors ###########################################
+  
+  
+  for (i in 1:(Npar_0 + 1)) {
+    beta_0[i] ~ dnorm(0.0, 0.04) 
+  }
+  
+  
+  for (i in 1:Npar) {
+    beta_1[i] ~ dnorm(0.0, 0.04) 
+  }
+  
+  
+  alpha_os.1 ~ dexp(0.5)
+
+  lambda ~ dnorm(0, 1)
+  
+  sigma_Y ~ dnorm(0, 0.01) T(0,)
+  
+  sigma_b1 ~ dnorm(0, 0.04) T(0,)
+  
+  sigma_b2 ~ dnorm(0, 1) T(0,)
+  
+  sigma_os.1 ~ dnorm(0, 1) T(0,)
+  
+  rho ~ dunif(-1, 1)
+  
+  
+  
+  
+  ############################## New Lesion #######################################
+  
+  tau_os.3 <- pow(sigma_os.3, -2)
+  tau_nl.3 <- pow(sigma_nl.3, -2)
+  
+  for(i in 1:N) {
+    
+    NL.u[i] <- -pow(Y_3[i], alpha_NL.3b[i]) * exp(inprod(Z_2[i, 1:Npar], beta_3[1:Npar])) * (-eta_3) 
+    NL.v[i] <- -pow(Y_os[i], alpha_3b[i]) * exp(inprod(Z_2[i, 1:Npar], beta_os.3[1:Npar])) * (-eta_3)
+    NL.LSE[i] <- log(exp(NL.u[i] - max(NL.u[i], NL.v[i], 0)) + exp(NL.v[i] - max(NL.u[i], NL.v[i], 0)) - exp(0 - max(NL.u[i], NL.v[i], 0))) + max(NL.u[i], NL.v[i], 0)
+    
+    L1.NL[i] <- L1.NL1[i] + L1.NL2[i] + L1.NL3[i] + L1.NL4[i] 
+    
+    L1.NL1[i] <- log(eta_3 + 1) + (-pow(Y_3[i], (alpha_NL.3b[i])) * exp(inprod(Z_2[i, 1:Npar], beta_3[1:Npar])) - pow(Y_os[i], alpha_3b[i]) * exp(inprod(Z_2[i, 1:Npar], beta_os.3[1:Npar]))) * (-(eta_3+1))
+    L1.NL2[i] <- (-(2 * eta_3 + 1)/(eta_3)) * NL.LSE[i]
+    L1.NL3[i] <- log(alpha_NL.3b[i] * pow(Y_3[i], alpha_NL.3b[i] - 1)) + (inprod(Z_2[i, 1:Npar], beta_3[1:Npar]) - pow(Y_3[i], alpha_NL.3b[i]) * exp(inprod(Z_2[i, 1:Npar], beta_3[1:Npar])))
+    L1.NL4[i] <- log(alpha_3b[i] * pow(Y_os[i], alpha_3b[i] - 1)) + (inprod(Z_2[i, 1:Npar], beta_os.3[1:Npar]) - pow(Y_os[i], alpha_3b[i]) * exp(inprod(Z_2[i, 1:Npar], beta_os.3[1:Npar])))
+    
+    
+    L2.NL[i] <- L2.NL1[i] + L2.NL2[i] + L2.NL3[i] 
+    
+    L2.NL1[i] <- (-pow(Y_3[i], alpha_NL.3b[i]) * exp(inprod(Z_2[i, 1:Npar], beta_3[1:Npar]))) * (eta_3 + 1)
+    L2.NL2[i] <- (-(eta_3 + 1)/(eta_3)) * NL.LSE[i]
+    L2.NL3[i] <- L1.NL3[i]
+    
+    
+    L3.NL[i] <- L3.NL1[i] + L3.NL2[i] + L3.NL3[i]
+    
+    L3.NL1[i] <- (-pow(Y_os[i], alpha_3b[i]) * exp(inprod(Z_2[i, 1:Npar], beta_os.3[1:Npar]))) * (eta_3 + 1)
+    L3.NL2[i] <- (-(eta_3 + 1)/(eta_3)) * NL.LSE[i]
+    L3.NL3[i] <- L1.NL4[i]
+    
+    
+    L4.NL[i] <- (-1/eta_3) * NL.LSE[i]
+    
+    
+    L.NL[i] <- L1.NL[i] * (delta_NL[i] * delta_OS[i]) + L2.NL[i] * (delta_NL[i] * (1 - delta_OS[i])) + L3.NL[i] * ((1 - delta_NL[i]) * delta_OS[i]) + L4.NL[i] * ((1 - delta_OS[i]) * (1 - delta_NL[i]))
+
+    
+    phi_NL[i] <- -L.NL[i] + C
+    Y_NLOS[i] ~ dpois(phi_NL[i])
+    
+    os.3[i] ~ dnorm(0, tau_os.3)
+    nl.3[i] ~ dnorm(0, tau_nl.3)
+    
+    b_os.3[i] <- exp(os.3[i])
+    b_nl.3[i] <- exp(nl.3[i]) 
+    
+    alpha_3b[i] <- alpha_os.3 + b_os.3[i]
+    alpha_NL.3b[i] <- alpha_3 + b_nl.3[i]
+    
+    ######### marginal model for OS ##########
+    
+    
+    theta_os.3[i] <- exp(inprod(Z_2[i, 1:Npar], beta_os.3[1:Npar]))
+    
+    Y.os.nl_rep[i] ~ dweib(alpha_3b[i], theta_os.3[i]) T(t.cen.lim[i, 1], longest_survival)
+
+  }
+  
+  
+  ################## priors  ########################
+  
+  
+ for (i in 1:Npar)
+  {
+    beta_3[i] ~ dnorm(0.0, 0.04)
+  }
+  
+  for (i in 1:Npar)
+  {
+    beta_os.3[i] ~ dnorm(0.0, 0.04) 
+  }
+  
+  eta_3 ~ dexp(0.5)
+
+  alpha_3 ~ dexp(0.5) 
+  alpha_os.3 ~ dexp(0.5) 
+
+  sigma_os.3 ~ dnorm(0, 1) T(0.0,)
+  sigma_nl.3 ~ dnorm(0, 1) T(0.0,)
+  
+  
+  ################# weibull OS #####################
+  
+  for(i in 1:N) {
+  
+    theta_os.4[i] <- exp(inprod(Z_2[i, 1:Npar], beta_os.4[1:Npar]))
+    
+    Y.os.wb_rep[i] ~ dweib(alpha_os.4, theta_os.4[i]) T(t.cen.lim[i, 1], longest_survival)
+
+  }
+  
+  for (i in TL_ob_n){
+  
+    t.os.wb[i] ~ dweib(alpha_os.4, theta_os.4[i]) T(, longest_survival)
+
+  }
+
+  for (i in TL_c_n){
+
+    t.os.wb[i] ~ dweib(alpha_os.4, theta_os.4[i]) T(t.cen.lim[i, 1], longest_survival)
+
+  }
+    
+  #### priors ####
+  
+  alpha_os.4 ~ dexp(0.5) 
+
+  for (i in 1:Npar)
+  {
+    beta_os.4[i] ~ dnorm(0.0, 0.04) 
+  }
+}
