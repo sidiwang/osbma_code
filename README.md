@@ -7,6 +7,6 @@ Two folders are provided:
 - `simulation_code` - `R` and `JAGS` code of the simulation studies conducted;
 - `case_study_code` - `R` and `JAGS` code of the example data analysis;
 
-To conduct the example data analysis yourself, please download the `case_study_code` folder, set the working directory to that folder, and run with `sbatch.txt`. Please edit the number of simulations and computing cores according to your needs. Datasets used are also provided. 
+To conduct the example data analysis yourself, please download the `case_study_code` folder, set the working directory to that folder, and run `sbatch.txt`. Please edit the number of simulations and computing cores according to your needs. Datasets used are also provided. 
 
 Contact: sidiwang@umich.edu
