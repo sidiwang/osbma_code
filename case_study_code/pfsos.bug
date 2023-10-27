@@ -1,0 +1,93 @@
+data{
+  
+   for (i in 1:N)
+   {
+       Y_PFSOS[i] <- 0
+   }
+
+}
+
+model{
+  
+  C <- 1e+4
+  
+  tau_os.2 <- pow(sigma_os.2, -2)
+  tau_pfs.2 <- pow(sigma_pfs.2, -2)
+  
+  for(i in 1:N) {
+    
+    u[i] <- -pow(Y_PFS[i], alpha_PFS.2b[i]) * exp(inprod(Z_PFS[i, 1:Npar], beta_2[1:Npar])) * (-eta_2) 
+    v[i] <- -pow(Y_os[i], alpha_2b[i]) * exp(inprod(Z_PFS[i, 1:Npar], beta_os.2[1:Npar])) * (-eta_2)
+    LSE[i] <- log(exp(u[i] - max(u[i], v[i], 0)) + exp(v[i] - max(u[i], v[i], 0)) - exp(0 - max(u[i], v[i], 0))) + max(u[i], v[i], 0)
+
+    L1.PFS[i] <- L1.PFS1[i] + L1.PFS2[i] + L1.PFS3[i] + L1.PFS4[i] 
+    
+    L1.PFS1[i] <- log(eta_2 + 1) + (-pow(Y_PFS[i], (alpha_PFS.2b[i])) * exp(inprod(Z_PFS[i, 1:Npar], beta_2[1:Npar])) - pow(Y_os[i], alpha_2b[i]) * exp(inprod(Z_PFS[i, 1:Npar], beta_os.2[1:Npar]))) * (-(eta_2+1))
+    L1.PFS2[i] <- (-(2 * eta_2 + 1)/(eta_2)) * LSE[i]
+    L1.PFS3[i] <- log(alpha_PFS.2b[i] * pow(Y_PFS[i], alpha_PFS.2b[i] - 1)) + (inprod(Z_PFS[i, 1:Npar], beta_2[1:Npar]) - pow(Y_PFS[i], alpha_PFS.2b[i]) * exp(inprod(Z_PFS[i, 1:Npar], beta_2[1:Npar])))
+    L1.PFS4[i] <- log(alpha_2b[i] * pow(Y_os[i], alpha_2b[i] - 1)) + (inprod(Z_PFS[i, 1:Npar], beta_os.2[1:Npar]) - pow(Y_os[i], alpha_2b[i]) * exp(inprod(Z_PFS[i, 1:Npar], beta_os.2[1:Npar])))
+    
+    
+    L2.PFS[i] <- L2.PFS1[i] + L2.PFS2[i] + L2.PFS3[i] 
+    
+    L2.PFS1[i] <- (-pow(Y_PFS[i], alpha_PFS.2b[i]) * exp(inprod(Z_PFS[i, 1:Npar], beta_2[1:Npar]))) * (eta_2 + 1)
+    L2.PFS2[i] <- (-(eta_2 + 1)/(eta_2)) * LSE[i]
+    L2.PFS3[i] <- L1.PFS3[i]
+    
+    
+    L3.PFS[i] <- L3.PFS1[i] + L3.PFS2[i] + L3.PFS3[i]
+    
+    L3.PFS1[i] <- (-pow(Y_os[i], alpha_2b[i]) * exp(inprod(Z_PFS[i, 1:Npar], beta_os.2[1:Npar]))) * (eta_2 + 1)
+    L3.PFS2[i] <- (-(eta_2 + 1)/(eta_2)) * LSE[i]
+    L3.PFS3[i] <- L1.PFS4[i]
+    
+    
+    L4.PFS[i] <- (-1/eta_2) * LSE[i]
+    
+    
+    L.PFS[i] <- L1.PFS[i] * (delta_PFS[i] * delta_OS[i]) + L2.PFS[i] * (delta_PFS[i] * (1 - delta_OS[i])) + L3.PFS[i] * ((1 - delta_PFS[i]) * delta_OS[i]) + L4.PFS[i] * ((1 - delta_OS[i]) * (1 - delta_PFS[i]))
+    
+    
+    phi_PFS[i] <- -(L.PFS[i]) + C
+    Y_PFSOS[i] ~ dpois(phi_PFS[i])
+    
+    
+    os.2[i] ~ dnorm(0, tau_os.2)
+    pfs.2[i] ~ dnorm(0, tau_pfs.2)
+    
+    b_os.2[i] <- exp(os.2[i])
+    b_pfs.2[i] <- exp(pfs.2[i]) 
+    
+    alpha_2b[i] <- alpha_os.2 + b_os.2[i]
+    alpha_PFS.2b[i] <- alpha_2 + b_pfs.2[i]
+    
+    
+    ####### marginal model for OS ##########
+    
+    
+    theta_os.2[i] <- exp(inprod(Z_PFS[i, 1:Npar], beta_os.2[1:Npar]))
+    
+    Y.os.pfs_rep[i] ~ dweib(alpha_2b[i], theta_os.2[i]) T(t.cen.lim[i, 1], longest_survival)
+  
+  }
+  
+  
+  for (i in 1:Npar) {
+    beta_2[i] ~ dnorm(0.0, 1) 
+  }
+  
+  
+  for (i in 1:Npar) {
+    beta_os.2[i] ~ dnorm(0.0, 1)
+  }
+  
+  eta_2 ~ dexp(1) 
+  
+  
+  alpha_2 ~ dexp(1) 
+  alpha_os.2 ~ dexp(1) 
+  
+  sigma_os.2 ~ dnorm(0, 0.1) T(0.0,)
+  sigma_pfs.2 ~ dnorm(0, 0.1) T(0.0,)
+
+}

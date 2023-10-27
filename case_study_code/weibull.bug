@@ -1,0 +1,33 @@
+model{
+
+  for(i in 1:N) {
+  
+    theta_os.4[i] <- exp(inprod(Z_2[i, 1:Npar], beta_os.4[1:Npar]))
+    
+    Y.os.wb_rep[i] ~ dweib(alpha_os.4, theta_os.4[i]) T(t.cen.lim[i, 1], longest_survival)
+    
+  }
+  
+  for (i in TL_ob_n){
+  
+     t.os.wb[i] ~ dweib(alpha_os.4, theta_os.4[i]) T(, longest_survival)
+
+  }
+  
+  for (i in TL_c_n){
+
+    t.os.wb[i] ~ dweib(alpha_os.4, theta_os.4[i]) T(t.cen.lim[i, 1], longest_survival)
+
+  }
+
+
+  #### priors ####
+  
+  alpha_os.4 ~ dexp(1) 
+  
+  for (i in 1:Npar)
+  {
+    beta_os.4[i] ~ dnorm(0.0, 1) 
+  }
+  
+}    

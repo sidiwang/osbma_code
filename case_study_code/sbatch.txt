@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --job-name=OSPRED_case_study
+#SBATCH --time=2-10:30:00
+#SBATCH --mail-user=xxxxxx
+#SBATCH --mem=10GB 
+#SBATCH --cpus-per-task=1
+#SBATCH -o OSPRED-%J%a.out
+#SBATCH --array=0-2
+#SBATCH --mail-type=ALL
+
+C=(2000 2000 2000 2000) 
+D=(1 2 3 4)
+
+Rscript run.R ${C[$SLURM_ARRAY_TASK_ID]} ${D[$SLURM_ARRAY_TASK_ID]} 
